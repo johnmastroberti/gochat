@@ -38,11 +38,13 @@ func handle(c net.Conn) {
 			return
 		}
 
-		if string(message[:message_length]) == "exit" {
+		if string(message[:message_length]) == "exit\n" {
 			log.Println("Disconnecting from ", c.RemoteAddr())
+			c.Write([]byte("See ya later\n"))
 			return
 		}
 
-		log.Printf("Received message from %v: \"%s\"\n", c.RemoteAddr(), string(message[:message_length]))
+		log.Printf("Received message from %v: \"%s\"\n", c.RemoteAddr(), string(message[:message_length-1]))
+		c.Write([]byte("Message received\n"))
 	}
 }
