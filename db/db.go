@@ -14,6 +14,7 @@ var users *bolt.DB
 var userEmails = []byte("emails")
 var userPassHashes = []byte("hashes")
 var userNotFoundError = errors.New("User not in database")
+var userExistsError = errors.New("User already exists in database")
 
 // The messages database, used by both client and server
 var Messages *bolt.DB
@@ -46,6 +47,10 @@ func AddNewUser(username string, email string, password string) error {
 	err = users.Update(func(tx *bolt.Tx) error {
 		emailBucket := tx.Bucket(userEmails)
 		hashBucket := tx.Bucket(userPassHashes)
+		// Make sure the user does not exist yet
+		if hashBucket.Get([]byte(username)) != nil {
+			return userExistsError
+		}
 		emailBucket.Put([]byte(username), []byte(email))
 		return hashBucket.Put([]byte(username), hash)
 	})
