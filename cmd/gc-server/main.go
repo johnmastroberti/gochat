@@ -46,7 +46,10 @@ func main() {
 
 func handleConnection(c net.Conn) {
 	log.Printf("Accepted connection from %v on %v\n", c.RemoteAddr(), c.LocalAddr())
-	defer c.Close()
+	defer func() {
+		log.Println("Disconnecting from ", c.RemoteAddr())
+		c.Close()
+	}()
 
 	client := bufio.NewReadWriter(bufio.NewReader(c), bufio.NewWriter(c))
 
@@ -69,7 +72,6 @@ func handleConnection(c net.Conn) {
 			return
 		}
 		if dc {
-			log.Println("Disconnecting from ", c.RemoteAddr())
 			return
 		}
 
