@@ -19,7 +19,7 @@ func check(e error) {
 
 func main() {
 	// Initialize database
-	dbDir := "/home/john/.local/cache/gochat"
+	dbDir := "/home/john/.cache/gochat"
 	err := os.MkdirAll(dbDir, 0700)
 	check(err)
 	err = db.UserDBInit(filepath.Join(dbDir, "users.db"))
