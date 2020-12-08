@@ -30,9 +30,9 @@ type TextMessage struct {
 
 // Encode a standard message as json
 func (m TextMessage) ToJson() []byte {
-	json, _ := json.Marshal(m)
-	json = append(json, '\n')
-	return append([]byte("TEXT:"), json...)
+	jsonText, _ := json.Marshal(m)
+	jsonText = append(jsonText, '\n')
+	return append([]byte("TEXT:"), jsonText...)
 }
 
 // The message that a client sends the server to create a new user
@@ -44,9 +44,9 @@ type NewUserMessage struct {
 
 // Encode a new user message as json
 func (m NewUserMessage) ToJson() []byte {
-	json, _ := json.Marshal(m)
-	json = append(json, '\n')
-	return append([]byte("NEWU:"), json...)
+	jsonText, _ := json.Marshal(m)
+	jsonText = append(jsonText, '\n')
+	return append([]byte("NEWU:"), jsonText...)
 }
 
 // The message that a client sends the server to create login
@@ -57,9 +57,9 @@ type LoginMessage struct {
 
 // Encode a new user message as json
 func (m LoginMessage) ToJson() []byte {
-	json, _ := json.Marshal(m)
-	json = append(json, '\n')
-	return append([]byte("AUTH:"), json...)
+	jsonText, _ := json.Marshal(m)
+	jsonText = append(jsonText, '\n')
+	return append([]byte("AUTH:"), jsonText...)
 }
 
 // Determine the type of message received
