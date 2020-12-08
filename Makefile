@@ -4,6 +4,6 @@ build:
 	go build ./cmd/gc-client
 	go build ./cmd/gc-server
 
-install:
+install: build
 	go install ./cmd/gc-client
 	go install ./cmd/gc-server

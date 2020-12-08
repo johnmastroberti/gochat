@@ -35,6 +35,23 @@ func UserDBInit(path string) error {
 	})
 }
 
+// Returns a slice of all users in the database
+func AllUsers() []string {
+	var usersSlice []string
+	err := users.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(userPassHashes)
+		b.ForEach(func(k, v []byte) error {
+			usersSlice = append(usersSlice, string(k)+"\t"+string(v))
+			return nil
+		})
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+	return usersSlice
+}
+
 // Add a new user to the database, along with their email and
 // password hash
 func AddNewUser(username string, email string, password string) error {
