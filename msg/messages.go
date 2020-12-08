@@ -4,10 +4,9 @@ package msg
 
 import (
 	"encoding/json"
-	"errors"
 )
 
-var ErrBadFormat = errors.New("Bad message format")
+//var ErrBadFormat = errors.New("Bad message format")
 
 type MessageType int8
 
@@ -15,6 +14,7 @@ const (
 	TextMessageT MessageType = iota
 	NewUserMessageT
 	LoginMessageT
+	BadFormatT
 )
 
 // Message is the primary data structure describing
@@ -63,20 +63,20 @@ func (m LoginMessage) ToJson() []byte {
 }
 
 // Determine the type of message received
-func GetMessageType(message []byte) (MessageType, error) {
+func GetMessageType(message []byte) MessageType {
 	if len(message) < 5 {
-		return -1, ErrBadFormat
+		return BadFormatT
 	}
 	key := string(message[:4])
 	switch key {
 	case "TEXT":
-		return TextMessageT, nil
+		return TextMessageT
 	case "NEWU":
-		return NewUserMessageT, nil
+		return NewUserMessageT
 	case "AUTH":
-		return LoginMessageT, nil
+		return LoginMessageT
 	default:
-		return -1, ErrBadFormat
+		return BadFormatT
 	}
 }
 

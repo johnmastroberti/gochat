@@ -6,9 +6,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/johnmastroberti/gochat/db"
 	"github.com/johnmastroberti/gochat/msg"
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 func check(e error) {
@@ -19,8 +21,10 @@ func check(e error) {
 
 func main() {
 	// Initialize database
-	dbDir := "/home/john/.cache/gochat"
-	err := os.MkdirAll(dbDir, 0700)
+	home, err := homedir.Dir()
+	check(err)
+	dbDir := filepath.Join(home, ".cache", "gochat")
+	err = os.MkdirAll(dbDir, 0700)
 	check(err)
 	err = db.UserDBInit(filepath.Join(dbDir, "users.db"))
 	check(err)
@@ -52,7 +56,7 @@ func handleConnection(c net.Conn) {
 			return
 		}
 
-		log.Printf("Received message from %v: \"%s\"\n", c.RemoteAddr(), message)
+		log.Printf("Received message from %v: \"%s\"\n", c.RemoteAddr(), strings.Trim(message, "\n"))
 
 		resp, dc := handleMessage(message)
 
@@ -80,8 +84,8 @@ func handleMessage(m string) (string, bool) {
 	if m == "exit\n" {
 		return "See ya later\n", true
 	}
-	mt, _ := msg.GetMessageType([]byte(m))
-	switch mt {
+	switch msg.GetMessageType([]byte(m)) {
+	// New Users
 	case msg.NewUserMessageT:
 		newu, err := msg.NewUserFromJson([]byte(m))
 		if err != nil {
@@ -95,6 +99,7 @@ func handleMessage(m string) (string, bool) {
 		}
 		return "success\n", false
 
+		// Authenticate existing users
 	case msg.LoginMessageT:
 		auth, err := msg.LoginFromJson([]byte(m))
 		if err != nil {
