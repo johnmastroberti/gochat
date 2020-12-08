@@ -1,9 +1,9 @@
 build:
 	go build ./msg
 	go build ./db
-	go build ./cmd/client
-	go build ./cmd/server
+	go build ./cmd/gc-client
+	go build ./cmd/gc-server
 
 install:
-	go install ./cmd/client
-	go install ./cmd/server
+	go install ./cmd/gc-client
+	go install ./cmd/gc-server
