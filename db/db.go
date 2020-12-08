@@ -88,8 +88,5 @@ func AuthenticateUser(username string, password string) bool {
 		e := bcrypt.CompareHashAndPassword(hash, []byte(password))
 		return e
 	})
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }

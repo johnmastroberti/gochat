@@ -60,12 +60,7 @@ func login(stdin *bufio.Reader, server Server) bool {
 	}
 
 	resp := <-server.MessagesIn
-	if resp == "success\n" {
-		return true
-	} else {
-		return false
-	}
-
+	return resp == "success\n"
 }
 
 type Server struct {
