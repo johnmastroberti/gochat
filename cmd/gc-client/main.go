@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/johnmastroberti/gochat/msg"
+	"github.com/johnmastroberti/gochat/ui"
 )
 
 func check(e error) {
@@ -78,26 +78,29 @@ func main() {
 	}
 	defer conn.Close()
 
-	stdin := bufio.NewReader(os.Stdin)
-	serverIn := bufio.NewReader(conn)
-	serverOut := bufio.NewWriter(conn)
+	events := make(chan msg.Message, 20)
+	ui.RunUILoop(events)
 
-	messagesIn := make(chan string, 100)
-	messagesOut := make(chan string, 100)
-	server := Server{messagesIn, messagesOut}
+	//stdin := bufio.NewReader(os.Stdin)
+	//serverIn := bufio.NewReader(conn)
+	//serverOut := bufio.NewWriter(conn)
 
-	go receiveMessages(serverIn, messagesIn)
-	go sendMessages(serverOut, messagesOut)
+	//messagesIn := make(chan string, 100)
+	//messagesOut := make(chan string, 100)
+	//server := Server{messagesIn, messagesOut}
 
-	if !login(stdin, server) {
-		fmt.Println("Login failed")
-		return
-	}
+	//go receiveMessages(serverIn, messagesIn)
+	//go sendMessages(serverOut, messagesOut)
 
-	fmt.Println("Login successful")
-	go displayIncomingMessages(messagesIn)
+	//if !login(stdin, server) {
+	//	fmt.Println("Login failed")
+	//	return
+	//}
 
-	handleCommands(stdin, server)
+	//fmt.Println("Login successful")
+	//go displayIncomingMessages(messagesIn)
+
+	//handleCommands(stdin, server)
 }
 
 func handleCommands(stdin *bufio.Reader, server Server) {

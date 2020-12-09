@@ -1,6 +1,7 @@
 build:
 	go build ./msg
 	go build ./db
+	go build ./ui
 	go build ./cmd/gc-client
 	go build ./cmd/gc-server
 
