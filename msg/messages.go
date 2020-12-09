@@ -8,95 +8,34 @@ import (
 
 //var ErrBadFormat = errors.New("Bad message format")
 
-type MessageType int8
-
-const (
-	TextMessageT MessageType = iota
-	NewUserMessageT
-	LoginMessageT
-	BadFormatT
-)
-
 // Message is the primary data structure describing
 // client/server messages
-type TextMessage struct {
+type Message struct {
+	// The type of message
+	Type string `json:"type,omitempty"`
 	// The user to whom the message is directed
-	To string `json:"to"`
+	To string `json:"to,omitempty"`
 	// The user that the message is from
-	From string `json:"from"`
+	From string `json:"from,omitempty"`
 	// The content of the message
-	Content string `json:"content"`
+	Content string `json:"content,omitempty"`
+	// The username to be used for login
+	Username string `json:"username,omitempty"`
+	// The user's email address (used to create a new account)
+	Email string `json:"email,omitempty"`
+	// The user's password (for login)
+	Password string `json:"password,omitempty"`
 }
 
-// Encode a standard message as json
-func (m TextMessage) ToJson() []byte {
+// Encode a message as json for transfer over the network
+func (m Message) ToJson() string {
 	jsonText, _ := json.Marshal(m)
-	jsonText = append(jsonText, '\n')
-	return append([]byte("TEXT:"), jsonText...)
-}
-
-// The message that a client sends the server to create a new user
-type NewUserMessage struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-// Encode a new user message as json
-func (m NewUserMessage) ToJson() []byte {
-	jsonText, _ := json.Marshal(m)
-	jsonText = append(jsonText, '\n')
-	return append([]byte("NEWU:"), jsonText...)
-}
-
-// The message that a client sends the server to create login
-type LoginMessage struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-// Encode a new user message as json
-func (m LoginMessage) ToJson() []byte {
-	jsonText, _ := json.Marshal(m)
-	jsonText = append(jsonText, '\n')
-	return append([]byte("AUTH:"), jsonText...)
-}
-
-// Determine the type of message received
-func GetMessageType(message []byte) MessageType {
-	if len(message) < 5 {
-		return BadFormatT
-	}
-	key := string(message[:4])
-	switch key {
-	case "TEXT":
-		return TextMessageT
-	case "NEWU":
-		return NewUserMessageT
-	case "AUTH":
-		return LoginMessageT
-	default:
-		return BadFormatT
-	}
+	return string(append(jsonText, '\n'))
 }
 
 // Convert json to a TextMessage
-func TextFromJson(message []byte) (TextMessage, error) {
-	var m TextMessage
-	err := json.Unmarshal(message[5:], &m)
-	return m, err
-}
-
-// Convert json to a NewUserMessage
-func NewUserFromJson(message []byte) (NewUserMessage, error) {
-	var m NewUserMessage
-	err := json.Unmarshal(message[5:], &m)
-	return m, err
-}
-
-// Convert json to a LoginMesssage
-func LoginFromJson(message []byte) (LoginMessage, error) {
-	var m LoginMessage
-	err := json.Unmarshal(message[5:], &m)
+func FromJson(message string) (Message, error) {
+	var m Message
+	err := json.Unmarshal([]byte(message), &m)
 	return m, err
 }

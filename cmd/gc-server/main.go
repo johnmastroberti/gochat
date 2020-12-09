@@ -15,7 +15,7 @@ import (
 
 func check(e error) {
 	if e != nil {
-		log.Panic(e)
+		log.Println(e)
 	}
 }
 
@@ -86,15 +86,12 @@ func handleMessage(m string) (string, bool) {
 	if m == "exit\n" {
 		return "See ya later\n", true
 	}
-	switch msg.GetMessageType([]byte(m)) {
+	message, err := msg.FromJson(m)
+	check(err)
+	switch message.Type {
 	// New Users
-	case msg.NewUserMessageT:
-		newu, err := msg.NewUserFromJson([]byte(m))
-		if err != nil {
-			log.Println(err)
-			return "disconnected\n", true
-		}
-		err = db.AddNewUser(newu.Username, newu.Email, newu.Password)
+	case "NEWU":
+		err = db.AddNewUser(message.Username, message.Email, message.Password)
 		if err != nil {
 			log.Println(err)
 			return "disconnected\n", true
@@ -102,13 +99,8 @@ func handleMessage(m string) (string, bool) {
 		return "success\n", false
 
 		// Authenticate existing users
-	case msg.LoginMessageT:
-		auth, err := msg.LoginFromJson([]byte(m))
-		if err != nil {
-			log.Println(err)
-			return "disconnected\n", true
-		}
-		good := db.AuthenticateUser(auth.Username, auth.Password)
+	case "AUTH":
+		good := db.AuthenticateUser(message.Username, message.Password)
 		if good {
 			return "success\n", false
 		}

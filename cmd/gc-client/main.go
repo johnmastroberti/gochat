@@ -49,14 +49,16 @@ func login(stdin *bufio.Reader, server Server) bool {
 	password, _ = stdin.ReadString('\n')
 	// Send new user message to server
 	if newUser {
-		server.MessagesOut <- string(msg.NewUserMessage{
+		server.MessagesOut <- msg.Message{
+			Type:     "NEWU",
 			Username: strings.Trim(username, "\n"),
 			Email:    strings.Trim(emailadr, "\n"),
-			Password: strings.Trim(password, "\n")}.ToJson())
+			Password: strings.Trim(password, "\n")}.ToJson()
 	} else {
-		server.MessagesOut <- string(msg.LoginMessage{
+		server.MessagesOut <- msg.Message{
+			Type:     "AUTH",
 			Username: strings.Trim(username, "\n"),
-			Password: strings.Trim(password, "\n")}.ToJson())
+			Password: strings.Trim(password, "\n")}.ToJson()
 	}
 
 	resp := <-server.MessagesIn
@@ -134,14 +136,15 @@ func sendMessages(server *bufio.Writer, messagesOut chan string) {
 
 func displayIncomingMessages(messagesIn chan string) {
 	for messageString := range messagesIn {
-		// Only handling TextMessages for now
-		if msg.GetMessageType([]byte(messageString)) != msg.TextMessageT {
+		// Convert json to message struct
+		message, err := msg.FromJson(messageString)
+		if err != nil {
+			log.Println(err)
 			continue
 		}
 
-		message, err := msg.TextFromJson([]byte(messageString))
-		if err != nil {
-			log.Println(err)
+		// Only handling TextMessages for now
+		if message.Type != "TEXT" {
 			continue
 		}
 
