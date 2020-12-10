@@ -57,27 +57,30 @@ func cleanupCurses(dwin *gc.Window, iwin *gc.Window) {
 	gc.End()
 }
 
-func RunUILoop(events chan msg.Message) {
+// RunUILoop runs the main loop of the interface, where input
+// is accepted from the user and information is displayed
+// to the screen
+func RunUILoop(uiEvents chan msg.Message, userInput chan msg.Message) {
 	stdscr := cursesInit()
 	dispWin, inputWin := makeWindows(stdscr)
 
 	defer cleanupCurses(dispWin, inputWin)
 
-	userInput := make(chan gc.Key)
+	userKeys := make(chan gc.Key)
 	ready := make(chan bool)
 
-	go getUserInput(userInput, ready, inputWin)
+	go getUserInput(userKeys, ready, inputWin)
 	defer close(ready) // will cause getUserInput to return
 
 	for {
 		select {
-		case e := <-events:
+		case e := <-uiEvents:
 			if handleEvent(e, dispWin) {
 				return
 			}
 
-		case c := <-userInput:
-			handleInput(c, inputWin, events)
+		case c := <-userKeys:
+			handleInput(c, inputWin, userInput)
 
 		// indicate that we are ready for user input
 		// if there is no event or input to process
@@ -96,6 +99,9 @@ func handleEvent(e msg.Message, dispWin *gc.Window) bool {
 	dispWin.MovePrint(2, 1, "From: ", e.From)
 	dispWin.MovePrint(3, 1, "To: ", e.To)
 	dispWin.MovePrint(4, 1, "Content: ", e.Content)
+	dispWin.MovePrint(5, 1, "Username: ", e.Username)
+	dispWin.MovePrint(6, 1, "Email: ", e.Email)
+	dispWin.MovePrint(7, 1, "Password: ", e.Password)
 
 	dispWin.Refresh()
 
@@ -104,7 +110,7 @@ func handleEvent(e msg.Message, dispWin *gc.Window) bool {
 
 var inputContents []byte
 
-func handleInput(c gc.Key, inputWin *gc.Window, events chan msg.Message) {
+func handleInput(c gc.Key, inputWin *gc.Window, userInput chan msg.Message) {
 	updated := false
 	switch {
 	case c == gc.KEY_BACKSPACE || c == 127:
@@ -114,7 +120,7 @@ func handleInput(c gc.Key, inputWin *gc.Window, events chan msg.Message) {
 		}
 
 	case c == gc.KEY_ENTER || c == gc.KEY_RETURN:
-		events <- msg.Message{Type: "USERINPUT", Content: string(inputContents)}
+		userInput <- msg.Message{Type: "USERINPUT", Content: string(inputContents)}
 		inputContents = inputContents[:0]
 		updated = true
 
@@ -123,7 +129,7 @@ func handleInput(c gc.Key, inputWin *gc.Window, events chan msg.Message) {
 		updated = true
 
 	default:
-		events <- msg.Message{Type: "USERINPUT", Content: "Unhandled character: " + gc.KeyString(c) + " (" + strconv.Itoa(int(c)) + ")"}
+		userInput <- msg.Message{Type: "USERINPUT", Content: "Unhandled character: " + gc.KeyString(c) + " (" + strconv.Itoa(int(c)) + ")"}
 	}
 
 	if updated {
@@ -149,7 +155,7 @@ func isCharacter(c gc.Key) bool {
 }
 
 func getUserInput(input chan gc.Key, ready chan bool, inputWin *gc.Window) {
-	for _ = range ready {
+	for range ready {
 		input <- inputWin.GetChar()
 	}
 }

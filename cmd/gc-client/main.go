@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
-	"net"
 	"strings"
 
 	"github.com/johnmastroberti/gochat/msg"
@@ -17,52 +15,32 @@ func check(e error) {
 	}
 }
 
-// Perform the login procedure, returning true if successful
-func login(stdin *bufio.Reader, server Server) bool {
-	var newUser bool // true for new user, false for existing
-	for {
-		fmt.Println("Use '/new' to create a new user, or '/login' to login")
-		line, _ := stdin.ReadString('\n')
-		switch line {
-		case "/new\n":
-			newUser = true
-			break
-
-		case "/login\n":
-			newUser = false
-			break
-
-		default:
-			continue
-		}
-		break
-	}
-	var username, emailadr, password string
+// Perform the login procedure, returning the new user/login message to be
+// sent to the server
+func promptLogin(userInput chan msg.Message, uiEvents chan msg.Message, newUser bool) msg.Message {
 	// Get info
-	fmt.Print("Username: ")
-	username, _ = stdin.ReadString('\n')
+	var username, emailadr, password string
+	uiEvents <- msg.Message{Type: "PROMPT", Content: "Username:"}
+	username = (<-userInput).Content
 	if newUser {
-		fmt.Print("Email: ")
-		emailadr, _ = stdin.ReadString('\n')
+		uiEvents <- msg.Message{Type: "PROMPT", Content: "Email:"}
+		emailadr = (<-userInput).Content
 	}
-	fmt.Print("Password: ")
-	password, _ = stdin.ReadString('\n')
+	uiEvents <- msg.Message{Type: "PROMPT", Content: "Password:"}
+	password = (<-userInput).Content
 	// Send new user message to server
 	if newUser {
-		server.MessagesOut <- msg.Message{
+		return msg.Message{
 			Type:     "NEWU",
 			Username: strings.Trim(username, "\n"),
 			Email:    strings.Trim(emailadr, "\n"),
-			Password: strings.Trim(password, "\n")}.ToJson()
+			Password: strings.Trim(password, "\n")}
 	} else {
-		server.MessagesOut <- msg.Message{
+		return msg.Message{
 			Type:     "AUTH",
 			Username: strings.Trim(username, "\n"),
-			Password: strings.Trim(password, "\n")}.ToJson()
+			Password: strings.Trim(password, "\n")}
 	}
-
-	resp := <-server.MessagesIn
-	return resp == "success\n"
 }
 
 type Server struct {
@@ -71,15 +49,20 @@ type Server struct {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:8080")
-	if err != nil {
-		fmt.Println("Could not connect to server")
-		return
-	}
-	defer conn.Close()
+	//conn, err := net.Dial("tcp", "localhost:8080")
+	//if err != nil {
+	//	fmt.Println("Could not connect to server")
+	//	return
+	//}
+	//defer conn.Close()
 
-	events := make(chan msg.Message, 20)
-	ui.RunUILoop(events)
+	uiEvents := make(chan msg.Message, 20)
+	userInput := make(chan msg.Message, 20)
+	go handleUserInput(userInput, uiEvents)
+	uiEvents <- msg.Message{Type: "TEXT",
+		Content: `Welcome to GoChat!
+		Use /new to create a new account or /login to login`}
+	ui.RunUILoop(uiEvents, userInput)
 
 	//stdin := bufio.NewReader(os.Stdin)
 	//serverIn := bufio.NewReader(conn)
@@ -103,14 +86,23 @@ func main() {
 	//handleCommands(stdin, server)
 }
 
-func handleCommands(stdin *bufio.Reader, server Server) {
-	for {
-		line, err := stdin.ReadString('\n')
-		if err != nil {
-			log.Print(err)
-			return
+// Parses input from the user and sends necessary uiEvents on the uiEvents channel
+func handleUserInput(userInput chan msg.Message, uiEvents chan msg.Message) {
+	for m := range userInput {
+		if m.IsCommand() {
+			switch m.Command() {
+			case "new":
+				e := promptLogin(userInput, uiEvents, true)
+				uiEvents <- e
+			case "login":
+				e := promptLogin(userInput, uiEvents, false)
+				uiEvents <- e
+			case "exit":
+				uiEvents <- msg.Message{Content: "/exit"}
+			}
+		} else {
+			uiEvents <- msg.Message{Type: "TEXT", Content: "Received \"" + m.Content + "\""}
 		}
-		fmt.Print("Input: ", line) // TODO
 	}
 }
 
@@ -134,25 +126,5 @@ func sendMessages(server *bufio.Writer, messagesOut chan string) {
 	for message := range messagesOut {
 		server.WriteString(message)
 		server.Flush()
-	}
-}
-
-func displayIncomingMessages(messagesIn chan string) {
-	for messageString := range messagesIn {
-		// Convert json to message struct
-		message, err := msg.FromJson(messageString)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		// Only handling TextMessages for now
-		if message.Type != "TEXT" {
-			continue
-		}
-
-		// Print the message
-		fmt.Printf("New message!\nFrom: %s\nTo: %s\nContent:%s\n",
-			message.From, message.To, message.Content)
 	}
 }
